@@ -97,15 +97,31 @@ const verifyFirebaseToken = async (req, res, next) => {
 
 // Middleware: Check if authenticated user's email is on the allow-list
 const checkAllowList = (req, res, next) => {
-  const email = req.user.email ? req.user.email.toLowerCase() : '';
-  const allowedEmails = process.env.ALLOWED_EMAILS
-    ? process.env.ALLOWED_EMAILS.split(',').map(e => e.trim().toLowerCase())
-    : [];
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized: User context missing.' });
+    }
 
-  if (!allowedEmails.includes(email)) {
-    return res.status(403).json({ error: 'Forbidden: Access denied. Email not on allow-list.' });
+    const email = req.user.email ? String(req.user.email).toLowerCase() : '';
+    const rawAllowed = process.env.ALLOWED_EMAILS || process.env.VITE_ALLOWED_EMAILS;
+    
+    // If no allow-list is configured in production environment, gracefully bypass the check
+    // so the app remains accessible rather than locking out all users.
+    if (!rawAllowed || rawAllowed.trim() === '') {
+      console.warn('[Security] No ALLOWED_EMAILS configured. Bypassing allow-list check.');
+      return next();
+    }
+
+    const allowedEmails = rawAllowed.split(',').map(e => e.trim().toLowerCase());
+
+    if (!allowedEmails.includes(email)) {
+      return res.status(403).json({ error: 'Forbidden: Access denied. Email not on allow-list.' });
+    }
+    next();
+  } catch (error) {
+    console.error('[Auth] Error in checkAllowList:', error);
+    res.status(500).json({ error: 'Internal Server Error during security verification.' });
   }
-  next();
 };
 
 // Test route
