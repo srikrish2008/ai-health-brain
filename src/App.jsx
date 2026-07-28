@@ -39,6 +39,7 @@ function App() {
 
   // ── UI State ──────────────────────────────────────────────────────────────
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // ── PWA Install ───────────────────────────────────────────────────────────
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -251,76 +252,95 @@ function App() {
 
       {/* Header */}
       <header className="top-bar">
-        <div className="top-bar-brand" data-tour="header-logo" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
-          <img src="/icon-192.png" alt="AI Health Brain" style={{ width: '34px', height: '34px', borderRadius: '8px' }} onError={e => e.target.style.display = 'none'} />
-          <h2>AI Health Brain</h2>
+        <div className="top-bar-content">
+          <div className="top-bar-brand" data-tour="header-logo" onClick={() => { setActiveTab('home'); setShowMobileMenu(false); }} style={{ cursor: 'pointer' }}>
+            <img src="/icon-192.png" alt="AI Health Brain" style={{ width: '34px', height: '34px', borderRadius: '8px' }} onError={e => e.target.style.display = 'none'} />
+            <h2>AI Health Brain</h2>
+          </div>
+          
+          <button className="mobile-menu-btn" onClick={() => setShowMobileMenu(!showMobileMenu)} aria-label="Toggle Menu">
+            ☰
+          </button>
+          
+          <div className="desktop-actions">
+            <button
+              onClick={() => startAppTour(true)}
+              className="btn btn-ghost"
+              style={{ padding: '6px 10px', minHeight: '34px', fontSize: '0.78rem', fontWeight: 700 }}
+              title="Replay App Tour"
+            >
+              <span>🧭</span> <span>Tour</span>
+            </button>
+            <button
+              onClick={() => {
+                if (deferredPrompt) {
+                  handleInstallApp();
+                } else {
+                  setShowInstallModal(true);
+                }
+              }}
+              className="btn btn-primary"
+              style={{
+                padding: '6px 10px',
+                minHeight: '34px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                borderRadius: '8px',
+                backgroundColor: '#0284c7',
+                borderColor: '#0369a1',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(2, 132, 199, 0.2)'
+              }}
+              title="Install Mobile PWA App onto Home Screen"
+              aria-label="Install App"
+            >
+              <span>📲</span> <span>Install App</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('emergency')}
+              style={{
+                padding: '6px 12px',
+                minHeight: '34px',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                borderRadius: '8px',
+                border: '2px solid #ef4444',
+                backgroundColor: activeTab === 'emergency' ? '#dc2626' : '#fff5f5',
+                color: activeTab === 'emergency' ? '#ffffff' : '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                transition: 'all 0.2s ease'
+              }}
+              title="Emergency Medical ID & Doctor Export Report"
+            >
+              <span>🆘</span> <span style={{ fontWeight: 800 }}>Emergency ID</span>
+            </button>
+            <button onClick={() => setActiveTab('settings')} className="btn btn-ghost" style={{ padding: '8px', minHeight: '40px', color: activeTab === 'settings' ? 'var(--primary)' : 'var(--text-secondary)' }} title="Settings" aria-label="Settings">
+              <SettingsIcon size={20} />
+            </button>
+            <button onClick={handleLogout} className="btn btn-ghost" style={{ padding: '8px', minHeight: '40px' }} aria-label="Sign Out" title="Sign Out">
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => startAppTour(true)}
-            className="btn btn-ghost"
-            style={{ padding: '6px 10px', minHeight: '34px', fontSize: '0.78rem', fontWeight: 700 }}
-            title="Replay App Tour"
-          >
-            <span>🧭</span> <span>Tour</span>
-          </button>
-          <button
-            onClick={() => {
-              if (deferredPrompt) {
-                handleInstallApp();
-              } else {
-                setShowInstallModal(true);
-              }
-            }}
-            className="btn btn-primary"
-            style={{
-              padding: '6px 10px',
-              minHeight: '34px',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              borderRadius: '8px',
-              backgroundColor: '#0284c7',
-              borderColor: '#0369a1',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(2, 132, 199, 0.2)'
-            }}
-            title="Install Mobile PWA App onto Home Screen"
-            aria-label="Install App"
-          >
-            <span>📲</span> <span>Install App</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('emergency')}
-            style={{
-              padding: '6px 12px',
-              minHeight: '34px',
-              fontSize: '0.8rem',
-              fontWeight: 800,
-              borderRadius: '8px',
-              border: '2px solid #ef4444',
-              backgroundColor: activeTab === 'emergency' ? '#dc2626' : '#fff5f5',
-              color: activeTab === 'emergency' ? '#ffffff' : '#dc2626',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              cursor: 'pointer',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-              transition: 'all 0.2s ease'
-            }}
-            title="Emergency Medical ID & Doctor Export Report"
-          >
-            <span>🆘</span> <span style={{ fontWeight: 800 }}>Emergency ID</span>
-          </button>
-          <button onClick={() => setActiveTab('settings')} className="btn btn-ghost" style={{ padding: '8px', minHeight: '40px', color: activeTab === 'settings' ? 'var(--primary)' : 'var(--text-secondary)' }} title="Settings" aria-label="Settings">
-            <SettingsIcon size={20} />
-          </button>
-          <button onClick={handleLogout} className="btn btn-ghost" style={{ padding: '8px', minHeight: '40px' }} aria-label="Sign Out" title="Sign Out">
-            <LogOut size={20} />
-          </button>
+
+        {/* Mobile Drawer */}
+        <div className={`mobile-drawer ${showMobileMenu ? 'open' : ''}`}>
+           <button onClick={() => { startAppTour(true); setShowMobileMenu(false); }} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start' }}>🧭 Replay Tour</button>
+           <button onClick={() => { 
+             if (deferredPrompt) handleInstallApp(); else setShowInstallModal(true);
+             setShowMobileMenu(false); 
+           }} className="btn btn-primary" style={{ width: '100%', justifyContent: 'flex-start' }}>📲 Install App</button>
+           <button onClick={() => { setActiveTab('emergency'); setShowMobileMenu(false); }} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--danger)' }}>🆘 Emergency ID</button>
+           <button onClick={() => { setActiveTab('settings'); setShowMobileMenu(false); }} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--text-primary)' }}><SettingsIcon size={18} /> Settings</button>
+           <button onClick={() => { handleLogout(); setShowMobileMenu(false); }} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--danger)' }}><LogOut size={18} /> Sign Out</button>
         </div>
       </header>
 

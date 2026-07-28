@@ -246,16 +246,57 @@ input:focus, textarea:focus, select:focus {
 
 /* Dashboard Layout */
 .top-bar {
-  height: var(--top-bar-height);
+  height: auto;
+  min-height: var(--top-bar-height);
   background-color: var(--bg-card);
   border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
+  flex-direction: column;
+  padding: env(safe-area-inset-top, 16px) 16px 0 16px;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 50;
+}
+
+.top-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: var(--top-bar-height);
+}
+
+.desktop-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  min-height: unset;
+}
+
+.mobile-drawer {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .top-bar-brand {
@@ -273,6 +314,9 @@ input:focus, textarea:focus, select:focus {
 .top-bar-brand h2 {
   font-size: 1.25rem;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .main-content {
@@ -768,6 +812,21 @@ input:focus, textarea:focus, select:focus {
   }
   .subform-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-actions {
+    display: none;
+  }
+  .mobile-menu-btn {
+    display: flex;
+  }
+  .mobile-drawer.open {
+    display: flex;
+  }
+  .top-bar-brand h2 {
+    font-size: 1.1rem;
   }
 }
 
