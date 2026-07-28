@@ -65,24 +65,10 @@ function App() {
       setIsVerifying(true);
       if (currentUser) {
         try {
-          const email = currentUser.email ? String(currentUser.email).toLowerCase() : '';
-          const rawAllowed = import.meta.env.VITE_ALLOWED_EMAILS || '';
-          
-          if (rawAllowed && rawAllowed.trim() !== '') {
-            const allowedEmails = rawAllowed.split(',').map(e => e.trim().toLowerCase());
-            if (!allowedEmails.includes(email)) {
-              setAuthError('Access denied: Your email is not on the authorized allow-list.');
-              await signOut(auth);
-              setUser(null);
-              setIsVerifying(false);
-              return;
-            }
-          }
-          
           setUser(currentUser);
         } catch (err) {
-          console.error('Error during client-side allow-list check:', err);
-          setAuthError('Error verifying your permission locally.');
+          console.error('Error during client-side authentication:', err);
+          setAuthError('Error setting user session.');
           await signOut(auth);
           setUser(null);
         }

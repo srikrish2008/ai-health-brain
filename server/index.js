@@ -131,13 +131,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'AI Health Brain server is running.' });
 });
 
-// Endpoint: Verify user email status
-app.get('/api/verify-user', verifyFirebaseToken, checkAllowList, (req, res) => {
+// Endpoint: Verify user email status (legacy, bypass)
+app.get('/api/verify-user', verifyFirebaseToken, (req, res) => {
   res.json({ allowed: true, email: req.user.email });
 });
 
 // Endpoint: Get secure Cloudinary signature for file uploads
-app.post('/api/upload-signature', verifyFirebaseToken, checkAllowList, (req, res) => {
+app.post('/api/upload-signature', verifyFirebaseToken, (req, res) => {
   try {
     const timestamp = Math.round(new Date().getTime() / 1000);
     const userFolder = `health-vault/${req.user.uid}`;
@@ -165,7 +165,7 @@ app.post('/api/upload-signature', verifyFirebaseToken, checkAllowList, (req, res
 });
 
 // Endpoint: Secure Gemini API Proxy
-app.post('/api/gemini', verifyFirebaseToken, checkAllowList, async (req, res) => {
+app.post('/api/gemini', verifyFirebaseToken, async (req, res) => {
   const { prompt, systemInstruction, history, fileData, jsonMode } = req.body;
 
   if (!prompt && !fileData) {
