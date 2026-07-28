@@ -503,6 +503,12 @@ function App() {
                         <LogOut size={14} /> Sign Out
                       </button>
                     </div>
+                    <div className="list-item-row" style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+                      <div style={{ fontWeight: 600 }}>App Feedback</div>
+                      <a href="mailto:support@aihealthbrain.com?subject=App Feedback" className="btn btn-ghost" style={{ padding: '8px 14px', minHeight: '36px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        💬 Send Feedback
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>

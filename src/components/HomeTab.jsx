@@ -212,7 +212,12 @@ export default function HomeTab({ profile, symptoms, visits, vitals = [], onEdit
       <SectionCard title="Recent Symptoms" icon={TrendingUp} color="warning">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
           {recentSymptoms.length === 0 ? (
-            <span className="text-muted" style={{ fontSize: '0.85rem' }}>No symptoms logged yet</span>
+            <div className="empty-state" style={{ padding: '24px 12px', backgroundColor: '#f8fafc', border: '1px dashed var(--border)', borderRadius: '12px', textAlign: 'center' }}>
+              <TrendingUp size={28} style={{ color: 'var(--text-muted)', marginBottom: '8px' }} />
+              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>No recent symptoms</div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 12px' }}>Track how you're feeling to spot patterns.</p>
+              <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={onAddSymptom}>+ Log Symptom</button>
+            </div>
           ) : recentSymptoms.map(s => (
             <div key={s.id} className="timeline-item">
               <div className="timeline-dot" style={{ backgroundColor: `var(--${getSeverityColor(s.severity)})` }} />
@@ -227,16 +232,23 @@ export default function HomeTab({ profile, symptoms, visits, vitals = [], onEdit
             </div>
           ))}
         </div>
-        <button className="btn btn-secondary" style={{ width: '100%', padding: '10px', minHeight: '40px', fontSize: '0.875rem' }} onClick={onAddSymptom}>
-          <Plus size={16} /> Log Symptom
-        </button>
+        {recentSymptoms.length > 0 && (
+          <button className="btn btn-secondary" style={{ width: '100%', padding: '10px', minHeight: '40px', fontSize: '0.875rem' }} onClick={onAddSymptom}>
+            <Plus size={16} /> Log Another Symptom
+          </button>
+        )}
       </SectionCard>
 
       {/* Recent Doctor Visits */}
       <SectionCard title="Recent Doctor Visits" icon={Stethoscope} color="primary">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
           {recentVisits.length === 0 ? (
-            <span className="text-muted" style={{ fontSize: '0.85rem' }}>No visits logged yet</span>
+            <div className="empty-state" style={{ padding: '24px 12px', backgroundColor: '#f8fafc', border: '1px dashed var(--border)', borderRadius: '12px', textAlign: 'center' }}>
+              <Stethoscope size={28} style={{ color: 'var(--text-muted)', marginBottom: '8px' }} />
+              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>No visits recorded</div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 12px' }}>Keep track of your appointments & diagnoses.</p>
+              <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={onAddVisit}>+ Log Visit</button>
+            </div>
           ) : recentVisits.map(v => (
             <div key={v.id} className="timeline-item">
               <div className="timeline-dot" style={{ backgroundColor: 'var(--primary)' }} />
@@ -250,10 +262,16 @@ export default function HomeTab({ profile, symptoms, visits, vitals = [], onEdit
             </div>
           ))}
         </div>
-        <button className="btn btn-secondary" style={{ width: '100%', padding: '10px', minHeight: '40px', fontSize: '0.875rem' }} onClick={onAddVisit}>
-          <Plus size={16} /> Log Doctor Visit
-        </button>
+        {recentVisits.length > 0 && (
+          <button className="btn btn-secondary" style={{ width: '100%', padding: '10px', minHeight: '40px', fontSize: '0.875rem' }} onClick={onAddVisit}>
+            <Plus size={16} /> Log Another Visit
+          </button>
+        )}
       </SectionCard>
+
+      <footer style={{ marginTop: '24px', paddingBottom: '16px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        <p>⚠️ <strong>Medical Disclaimer:</strong> AI Health Brain provides informational insights only. It is not a substitute for professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare provider.</p>
+      </footer>
     </div>
   );
 }

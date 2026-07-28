@@ -263,7 +263,7 @@ function UploadModal({ onAddVaultFile, onClose }) {
           )}
 
           {uploading ? (
-            <div style={{ textCenter: 'center', padding: '12px 0' }}>
+            <div style={{ textAlign: 'center', padding: '12px 0' }}>
               <div className="spinner" style={{ margin: '0 auto 8px' }} />
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
                 {progressText}

@@ -599,6 +599,10 @@ ${vaultDocsList}
           <Send size={18} />
         </button>
       </div>
+
+      <footer style={{ marginTop: '12px', textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+        <p style={{ margin: 0 }}>⚠️ <strong>Medical Disclaimer:</strong> AI responses are for informational purposes only. Do not use as a substitute for professional medical advice.</p>
+      </footer>
     </div>
   );
 }
