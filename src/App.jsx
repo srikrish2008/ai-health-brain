@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -58,6 +60,63 @@ function App() {
     if (window.matchMedia('(display-mode: standalone)').matches) setShowInstallBanner(false);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  // ── App Tour (Driver.js) ──────────────────────────────────────────────────
+  const startAppTour = (force = false) => {
+    if (!force && localStorage.getItem('hasSeenAppTour')) return;
+    
+    const driverObj = driver({
+      showProgress: true,
+      animate: true,
+      steps: [
+        { 
+          element: '[data-tour="header-logo"]', 
+          popover: { title: 'Welcome!', description: "Welcome to AI Health Brain! Let's take a quick tour of all the tabs and features." } 
+        },
+        { 
+          element: '[data-tour="tab-navigation"]', 
+          popover: { title: 'Navigation', description: 'You can easily switch between your workspace tabs here.' } 
+        },
+        { 
+          element: '[data-tour="upload-tab"]', 
+          popover: { title: 'Health Vault', description: 'Upload lab reports or prescriptions for instant AI extraction.' },
+          onHighlightStarted: () => { setActiveTab('vault'); }
+        },
+        { 
+          element: '[data-tour="chat-tab"]', 
+          popover: { title: 'AI Assistant', description: 'Ask questions about your health, lab results, or medical advice here.' },
+          onHighlightStarted: () => { setActiveTab('chat'); }
+        },
+        { 
+          element: '[data-tour="history-tab"]', 
+          popover: { title: 'History & Analytics', description: 'Track your health metrics and saved reports over time.' },
+          onHighlightStarted: () => { setActiveTab('vitals'); }
+        },
+        { 
+          element: '[data-tour="settings-tab"]', 
+          popover: { title: 'Settings & Replay', description: "Manage your account or click 'Replay Tour' anytime to see this walkthrough again." },
+          onHighlightStarted: () => { setActiveTab('settings'); }
+        }
+      ],
+      onDestroyStarted: () => {
+        localStorage.setItem('hasSeenAppTour', 'true');
+        driverObj.destroy();
+        setActiveTab('home');
+      }
+    });
+
+    setActiveTab('home');
+    setTimeout(() => {
+      driverObj.drive();
+    }, 300);
+  };
+
+  useEffect(() => {
+    if (user && !profileLoading && !localStorage.getItem('hasSeenAppTour')) {
+      const timer = setTimeout(() => startAppTour(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, profileLoading]);
 
   // ── Auth Listener ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -190,13 +249,21 @@ function App() {
         />
       )}
 
-      {/* Top Bar */}
+      {/* Header */}
       <header className="top-bar">
-        <div className="top-bar-brand" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
+        <div className="top-bar-brand" data-tour="header-logo" onClick={() => setActiveTab('home')} style={{ cursor: 'pointer' }}>
           <img src="/icon-192.png" alt="AI Health Brain" style={{ width: '34px', height: '34px', borderRadius: '8px' }} onError={e => e.target.style.display = 'none'} />
           <h2>AI Health Brain</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => startAppTour(true)}
+            className="btn btn-ghost"
+            style={{ padding: '6px 10px', minHeight: '34px', fontSize: '0.78rem', fontWeight: 700 }}
+            title="Replay App Tour"
+          >
+            <span>🧭</span> <span>Tour</span>
+          </button>
           <button
             onClick={() => {
               if (deferredPrompt) {
@@ -321,25 +388,29 @@ function App() {
         ) : (
           <>
             {activeTab === 'home' && (
-              <HomeTab
-                profile={profile}
-                symptoms={symptoms}
-                visits={visits}
-                vitals={vitals}
-                onEditProfile={() => setShowEditProfile(true)}
-                onAddSymptom={() => { setActiveTab('symptoms'); }}
-                onAddVisit={() => { setActiveTab('visits'); }}
-                onOpenMedications={() => { setActiveTab('medications'); }}
-                onOpenVitals={() => { setActiveTab('vitals'); }}
-                onOpenEmergency={() => { setActiveTab('emergency'); }}
-              />
+              <div data-tour="dashboard-view">
+                <HomeTab
+                  profile={profile}
+                  symptoms={symptoms}
+                  visits={visits}
+                  vitals={vitals}
+                  onEditProfile={() => setShowEditProfile(true)}
+                  onAddSymptom={() => { setActiveTab('symptoms'); }}
+                  onAddVisit={() => { setActiveTab('visits'); }}
+                  onOpenMedications={() => { setActiveTab('medications'); }}
+                  onOpenVitals={() => { setActiveTab('vitals'); }}
+                  onOpenEmergency={() => { setActiveTab('emergency'); }}
+                />
+              </div>
             )}
             {activeTab === 'vault' && (
-              <VaultTab
+              <div data-tour="upload-tab">
+                <VaultTab
                 vaultFiles={vaultFiles}
                 onAddVaultFile={addVaultFile}
                 onDeleteVaultFile={deleteVaultFile}
               />
+              </div>
             )}
             {activeTab === 'symptoms' && (
               <SymptomsTab
@@ -364,14 +435,16 @@ function App() {
               />
             )}
             {activeTab === 'chat' && (
-              <ChatTab
+              <div data-tour="chat-tab">
+                <ChatTab
                 profile={profile}
                 symptoms={symptoms}
                 visits={visits}
                 vaultFiles={vaultFiles}
                 vitals={vitals}
-                onLogSymptom={logSymptom}
-              />
+                  onLogSymptom={logSymptom}
+                />
+              </div>
             )}
             {activeTab === 'medications' && (
               <MedicationsTab
@@ -380,14 +453,16 @@ function App() {
               />
             )}
             {activeTab === 'vitals' && (
-              <VitalsTab
+              <div data-tour="history-tab">
+                <VitalsTab
                 profile={profile}
                 vitals={vitals}
                 symptoms={symptoms}
                 onLogVital={logVital}
                 onDeleteVital={deleteVital}
-                onLogSymptom={logSymptom}
-              />
+                  onLogSymptom={logSymptom}
+                />
+              </div>
             )}
             {activeTab === 'emergency' && (
               <EmergencyTab
@@ -400,7 +475,7 @@ function App() {
               />
             )}
             {activeTab === 'settings' && (
-              <div>
+              <div data-tour="settings-tab">
                 <div className="card">
                   <h2 className="section-title"><SettingsIcon style={{ color: 'var(--primary)' }} />Settings</h2>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -437,7 +512,7 @@ function App() {
       </main>
 
       {/* Bottom Navigation Bar */}
-      <nav className="bottom-nav">
+      <nav className="bottom-nav" data-tour="tab-navigation">
         {[
           { id: 'home', icon: Heart, label: 'Home' },
           { id: 'vitals', icon: Activity, label: 'Vitals' },
