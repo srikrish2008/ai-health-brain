@@ -11,7 +11,9 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-dotenv.config({ path: join(__dirname, '.env') });
+// In Vercel serverless environments, dotenv might fail if .env is missing.
+// We only need this for local development. Vercel injects process.env directly.
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -270,7 +272,9 @@ app.post('/api/gemini', verifyFirebaseToken, checkAllowList, async (req, res) =>
 });
 
 // Serve frontend build in production (when hosted together on Render/Railway/Fly)
-if (process.env.NODE_ENV === 'production') {
+// We SKIP this on Vercel, because Vercel automatically serves static files from `dist`
+// via its CDN, and the serverless function does not have access to the `dist` folder.
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   const distPath = join(__dirname, '../dist');
   app.use(express.static(distPath));
   app.get('*', (req, res) => {

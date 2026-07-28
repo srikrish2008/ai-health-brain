@@ -65,21 +65,24 @@ function App() {
       setIsVerifying(true);
       if (currentUser) {
         try {
-          const token = await currentUser.getIdToken();
-          const response = await fetch('/api/verify-user', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-            setUser(currentUser);
-          } else {
-            const errData = await response.json();
-            setAuthError(errData.error || 'Access denied: Email not on allow-list.');
-            await signOut(auth);
-            setUser(null);
+          const email = currentUser.email ? String(currentUser.email).toLowerCase() : '';
+          const rawAllowed = import.meta.env.VITE_ALLOWED_EMAILS || '';
+          
+          if (rawAllowed && rawAllowed.trim() !== '') {
+            const allowedEmails = rawAllowed.split(',').map(e => e.trim().toLowerCase());
+            if (!allowedEmails.includes(email)) {
+              setAuthError('Access denied: Your email is not on the authorized allow-list.');
+              await signOut(auth);
+              setUser(null);
+              setIsVerifying(false);
+              return;
+            }
           }
+          
+          setUser(currentUser);
         } catch (err) {
-          console.error('Error during allow-list check:', err);
-          setAuthError('Connection error verifying your permission.');
+          console.error('Error during client-side allow-list check:', err);
+          setAuthError('Error verifying your permission locally.');
           await signOut(auth);
           setUser(null);
         }
