@@ -48,9 +48,11 @@ const fetchGooglePublicKeys = async () => {
   }
 };
 
-// Initial fetch and hourly rotation interval
-fetchGooglePublicKeys();
-setInterval(fetchGooglePublicKeys, 3600 * 1000);
+// Initial fetch and hourly rotation interval (skip timer on Vercel Serverless)
+if (!process.env.VERCEL) {
+  fetchGooglePublicKeys();
+  setInterval(fetchGooglePublicKeys, 3600 * 1000);
+}
 
 // Middleware: Verify Firebase ID Token cryptographically using jsonwebtoken
 const verifyFirebaseToken = async (req, res, next) => {

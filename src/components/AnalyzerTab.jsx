@@ -193,8 +193,15 @@ Return your response STRICTLY as a valid JSON object matching this exact structu
       });
 
       if (!response.ok) {
-        const errJson = await response.json();
-        throw new Error(errJson.error || errJson.details || 'Server failed to analyze document.');
+        let errMessage = 'Server failed to analyze document.';
+        try {
+          const errJson = await response.json();
+          errMessage = errJson.error || errJson.details || errMessage;
+        } catch {
+          const text = await response.text();
+          if (text) errMessage = `Server returned status ${response.status}: ${text.slice(0, 150)}`;
+        }
+        throw new Error(errMessage);
       }
 
       const rawData = await response.json();

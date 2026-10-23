@@ -209,8 +209,15 @@ Return ONLY a JSON object exactly matching this structure:
       });
 
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Server error while evaluating interactions.');
+        let errMessage = 'Server error while evaluating interactions.';
+        try {
+          const errData = await res.json();
+          errMessage = errData.error || errData.details || errMessage;
+        } catch {
+          const text = await res.text();
+          if (text) errMessage = `Server returned status ${res.status}: ${text.slice(0, 150)}`;
+        }
+        throw new Error(errMessage);
       }
 
       const data = await res.json();

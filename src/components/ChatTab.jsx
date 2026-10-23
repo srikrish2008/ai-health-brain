@@ -210,8 +210,15 @@ ${vaultDocsList}
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Server error while generating response.');
+        let errMessage = 'Server error while generating response.';
+        try {
+          const errData = await response.json();
+          errMessage = errData.error || errData.details || errMessage;
+        } catch {
+          const text = await response.text();
+          if (text) errMessage = `Server returned status ${response.status}: ${text.slice(0, 150)}`;
+        }
+        throw new Error(errMessage);
       }
 
       const data = await response.json();
