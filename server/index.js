@@ -82,7 +82,7 @@ const verifyFirebaseToken = async (req, res, next) => {
     }
 
     // 3. Cryptographically verify signature and standard claims
-    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'ai-health-brain';
     const decoded = jwt.verify(token, publicKey, {
       algorithms: ['RS256'],
       audience: projectId,
@@ -97,33 +97,9 @@ const verifyFirebaseToken = async (req, res, next) => {
   }
 };
 
-// Middleware: Check if authenticated user's email is on the allow-list
+// Middleware: Open to all authenticated users (Public App)
 const checkAllowList = (req, res, next) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Unauthorized: User context missing.' });
-    }
-
-    const email = req.user.email ? String(req.user.email).toLowerCase() : '';
-    const rawAllowed = process.env.ALLOWED_EMAILS || process.env.VITE_ALLOWED_EMAILS;
-    
-    // If no allow-list is configured in production environment, gracefully bypass the check
-    // so the app remains accessible rather than locking out all users.
-    if (!rawAllowed || rawAllowed.trim() === '') {
-      console.warn('[Security] No ALLOWED_EMAILS configured. Bypassing allow-list check.');
-      return next();
-    }
-
-    const allowedEmails = rawAllowed.split(',').map(e => e.trim().toLowerCase());
-
-    if (!allowedEmails.includes(email)) {
-      return res.status(403).json({ error: 'Forbidden: Access denied. Email not on allow-list.' });
-    }
-    next();
-  } catch (error) {
-    console.error('[Auth] Error in checkAllowList:', error);
-    res.status(500).json({ error: 'Internal Server Error during security verification.' });
-  }
+  next();
 };
 
 // Test route
