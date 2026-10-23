@@ -187,12 +187,14 @@ app.post('/api/gemini', verifyFirebaseToken, async (req, res) => {
       }
     }
 
-    // Use robust fallback array starting with official working gemini-flash-latest
+    // Robust fallback list of models verified available on current API key
     const candidateModels = [
       'gemini-flash-latest',
-      'gemini-pro-latest',
       'gemini-3.5-flash',
-      'gemini-2.0-flash-lite'
+      'gemini-3.6-flash',
+      'gemini-3.7-flash',
+      'gemini-3.8-flash',
+      'gemini-pro-latest'
     ];
     let lastError = null;
     let result = null;
@@ -245,7 +247,7 @@ app.post('/api/gemini', verifyFirebaseToken, async (req, res) => {
     res.json({ text });
   } catch (error) {
     console.error('Gemini API Error:', error);
-    res.status(500).json({ error: 'Failed to communicate with Gemini API', details: error.message });
+    res.status(500).json({ error: error.message || 'Failed to communicate with Gemini API', details: error.message });
   }
 });
 

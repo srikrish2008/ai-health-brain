@@ -196,7 +196,7 @@ Return your response STRICTLY as a valid JSON object matching this exact structu
         let errMessage = 'Server failed to analyze document.';
         try {
           const errJson = await response.json();
-          errMessage = errJson.error || errJson.details || errMessage;
+          errMessage = errJson.details || errJson.error || errMessage;
         } catch {
           const text = await response.text();
           if (text) errMessage = `Server returned status ${response.status}: ${text.slice(0, 150)}`;

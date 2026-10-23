@@ -326,11 +326,13 @@ function PreviewModal({ file, onClose }) {
               style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px', objectFit: 'contain', boxShadow: 'var(--shadow)' }}
             />
           ) : (
-            <iframe
-              src={file.fileUrl}
-              title={file.title}
-              style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '8px' }}
-            />
+            <div style={{ width: '100%', height: '70vh', display: 'flex', flexDirection: 'column' }}>
+              <iframe
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`}
+                title={file.title}
+                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '8px', backgroundColor: '#fff' }}
+              />
+            </div>
           )}
 
           {file.notes && (
