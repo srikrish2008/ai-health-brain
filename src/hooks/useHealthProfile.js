@@ -13,6 +13,7 @@ import {
   deleteDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { normalizeEmergencyContact, DEFAULT_EMERGENCY_CONTACT } from '../utils/emergencyContact';
 
 // Default blank profile structure — used when user logs in for the first time
 const DEFAULT_PROFILE = {
@@ -23,7 +24,7 @@ const DEFAULT_PROFILE = {
   bloodType: '',
   height: '',
   weight: '',
-  emergencyContact: '',
+  emergencyContact: { ...DEFAULT_EMERGENCY_CONTACT },
 
   // Medical History
   conditions: [],       // e.g. ["Type 2 Diabetes", "Hypertension"]
@@ -76,7 +77,11 @@ export function useHealthProfile(user) {
       try {
         const snap = await getDoc(userRef);
         if (snap.exists()) {
-          setProfile(snap.data());
+          const data = snap.data();
+          setProfile({
+            ...data,
+            emergencyContact: normalizeEmergencyContact(data.emergencyContact)
+          });
         } else {
           // First login — create default profile
           const newProfile = { ...DEFAULT_PROFILE, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
@@ -144,7 +149,11 @@ export function useHealthProfile(user) {
     setError(null);
     try {
       const userRef = doc(db, 'users', user.uid);
-      const updatedData = { ...updates, updatedAt: serverTimestamp() };
+      const sanitizedUpdates = { ...updates };
+      if (sanitizedUpdates.emergencyContact !== undefined) {
+        sanitizedUpdates.emergencyContact = normalizeEmergencyContact(sanitizedUpdates.emergencyContact);
+      }
+      const updatedData = { ...sanitizedUpdates, updatedAt: serverTimestamp() };
       await updateDoc(userRef, updatedData);
       setProfile(prev => ({ ...prev, ...updatedData }));
     } catch (err) {
@@ -218,15 +227,58 @@ export function useHealthProfile(user) {
     }
   }, [user]);
 
-  // Delete document from Vault
-  const deleteVaultFile = useCallback(async (fileId) => {
+  // Delete document from Vault (verified server-side Cloudinary asset cleanup + Firestore metadata)
+  const deleteVaultFile = useCallback(async (fileOrId) => {
     if (!user) return;
+    setSaving(true);
+    setError(null);
     try {
-      await deleteDoc(doc(db, 'users', user.uid, 'vault', fileId));
+      let fileId = fileOrId;
+      let cloudinaryId = null;
+
+      if (typeof fileOrId === 'object' && fileOrId !== null) {
+        fileId = fileOrId.id;
+        cloudinaryId = fileOrId.cloudinaryId;
+      } else {
+        // Fallback: look up in currently loaded vaultFiles if only an ID was passed
+        const found = vaultFiles.find(f => f.id === fileOrId);
+        if (found) {
+          cloudinaryId = found.cloudinaryId;
+        }
+      }
+
+      if (!fileId) {
+        throw new Error('No valid vault file identifier provided.');
+      }
+
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/vault/delete-file', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fileId: fileId,
+          publicId: cloudinaryId || undefined
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to delete vault file.');
+      }
+
+      // Also ensure client-side Firestore doc is cleared if needed (idempotent no-op if already deleted)
+      await deleteDoc(doc(db, 'users', user.uid, 'vault', fileId)).catch(() => {});
     } catch (err) {
       console.error('Error deleting vault file:', err);
+      setError(err.message || 'Failed to delete vault document.');
+      throw err;
+    } finally {
+      setSaving(false);
     }
-  }, [user]);
+  }, [user, vaultFiles]);
 
   // Log a new vital check-in
   const logVital = useCallback(async (vitalData) => {

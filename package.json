@@ -9,6 +9,7 @@
     "client": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "node --test",
     "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "dependencies": {

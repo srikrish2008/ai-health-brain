@@ -355,6 +355,24 @@ export default function VaultTab({ vaultFiles, onAddVaultFile, onDeleteVaultFile
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [dateFilter, setDateFilter] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
+
+  const handleDeleteFile = async (file) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${file.title}"? This will delete the file from your vault and cloud storage.`)) {
+      return;
+    }
+    setDeletingId(file.id);
+    setDeleteError('');
+    try {
+      await onDeleteVaultFile(file);
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setDeleteError(err.message || 'Failed to delete file from cloud storage. Document preserved.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -401,6 +419,14 @@ export default function VaultTab({ vaultFiles, onAddVaultFile, onDeleteVaultFile
       )}
 
       {/* Header Banner */}
+      {deleteError && (
+        <div className="alert alert-danger" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={18} />
+          <span style={{ flex: 1 }}>{deleteError}</span>
+          <button type="button" className="btn btn-ghost" style={{ padding: '2px 8px', minHeight: 'unset' }} onClick={() => setDeleteError('')}>✕</button>
+        </div>
+      )}
+
       <div className="flex-between" style={{ marginBottom: '16px' }}>
         <div>
           <h2 className="section-title" style={{ marginBottom: '2px' }}>
@@ -573,11 +599,21 @@ export default function VaultTab({ vaultFiles, onAddVaultFile, onDeleteVaultFile
 
                   <button
                     className="btn btn-ghost"
-                    style={{ padding: '8px', minHeight: '38px', color: 'var(--danger)' }}
-                    onClick={() => onDeleteVaultFile(file.id)}
+                    style={{
+                      padding: '8px',
+                      minHeight: '38px',
+                      color: 'var(--danger)',
+                      opacity: deletingId === file.id ? 0.5 : 1
+                    }}
+                    onClick={() => handleDeleteFile(file)}
+                    disabled={deletingId === file.id}
                     title="Delete File"
                   >
-                    <Trash2 size={16} />
+                    {deletingId === file.id ? (
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Deleting...</span>
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
                   </button>
                 </div>
               </div>

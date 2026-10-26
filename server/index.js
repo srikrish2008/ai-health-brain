@@ -7,6 +7,10 @@ import { v2 as cloudinary } from 'cloudinary';
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { safeFetchCloudinaryDocument } from './urlSecurity.js';
+import { createRateLimiter } from './rateLimiter.js';
+import { validateDocument } from './documentValidator.js';
+import { handleVaultDelete } from './vaultDeletion.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,8 +23,54 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-// Increase payload limit to support base64 uploads for analysis
-app.use(express.json({ limit: '50mb' }));
+
+// Sensible, route-appropriate JSON payload size limits
+// 15MB for multimodal lab reports in /api/gemini; 1MB baseline for all other API endpoints
+const defaultJsonParser = express.json({ limit: '1mb' });
+const geminiJsonParser = express.json({ limit: '15mb' });
+
+app.use((req, res, next) => {
+  if (req.path === '/api/gemini') {
+    return geminiJsonParser(req, res, next);
+  }
+  return defaultJsonParser(req, res, next);
+});
+
+// Middleware: Handle oversized payload (HTTP 413) and malformed JSON cleanly
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({
+      error: 'Payload Too Large: The submitted request body exceeds the maximum permitted size limit.'
+    });
+  }
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      error: 'Bad Request: Malformed JSON payload in request body.'
+    });
+  }
+  next(err);
+});
+
+// Rate limiters: protect expensive endpoints and prevent abuse
+const generalApiLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: 'General API rate limit reached. Please wait a moment before sending more requests.'
+});
+
+const geminiRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: 'Gemini AI rate limit reached. Please wait a moment before sending more requests.'
+});
+
+const vaultRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: 'Health Vault operation rate limit reached. Please wait a moment before uploading or deleting more files.'
+});
+
+app.use('/api', generalApiLimiter);
 
 // Initialize Cloudinary
 cloudinary.config({
@@ -115,7 +165,7 @@ app.get('/api/verify-user', verifyFirebaseToken, (req, res) => {
 });
 
 // Endpoint: Get secure Cloudinary signature for file uploads
-app.post('/api/upload-signature', verifyFirebaseToken, (req, res) => {
+app.post('/api/upload-signature', verifyFirebaseToken, vaultRateLimiter, (req, res) => {
   try {
     const timestamp = Math.round(new Date().getTime() / 1000);
     const userFolder = `health-vault/${req.user.uid}`;
@@ -142,8 +192,13 @@ app.post('/api/upload-signature', verifyFirebaseToken, (req, res) => {
   }
 });
 
+// Endpoint: Securely delete a Cloudinary asset and Firestore record belonging to the authenticated user
+app.post('/api/vault/delete-file', verifyFirebaseToken, vaultRateLimiter, async (req, res) => {
+  return handleVaultDelete(req, res);
+});
+
 // Endpoint: Secure Gemini API Proxy
-app.post('/api/gemini', verifyFirebaseToken, async (req, res) => {
+app.post('/api/gemini', verifyFirebaseToken, geminiRateLimiter, async (req, res) => {
   const { prompt, systemInstruction, history, fileData, jsonMode } = req.body;
 
   if (!prompt && !fileData) {
@@ -156,34 +211,39 @@ app.post('/api/gemini', verifyFirebaseToken, async (req, res) => {
     // Prepare inline file part if provided
     let inlinePart = null;
     if (fileData) {
-      if (fileData.base64 && fileData.mimeType) {
-        inlinePart = {
-          inlineData: {
-            data: fileData.base64,
-            mimeType: fileData.mimeType
-          }
-        };
-      } else if (fileData.url) {
-        console.log('[Gemini] Fetching remote document from URL for analysis...');
-        const fetchResponse = await fetch(fileData.url);
-        if (!fetchResponse.ok) {
-          throw new Error(`Failed to fetch remote document from storage: ${fetchResponse.statusText}`);
-        }
-        const arrayBuffer = await fetchResponse.arrayBuffer();
-        const base64Data = Buffer.from(arrayBuffer).toString('base64');
-        let contentType = fileData.mimeType || fetchResponse.headers.get('content-type') || 'application/pdf';
-        // Normalize typical extension names to valid mime types if needed
-        if (contentType === 'jpg' || contentType === 'jpeg') contentType = 'image/jpeg';
-        if (contentType === 'png') contentType = 'image/png';
-        if (contentType === 'pdf') contentType = 'application/pdf';
-        if (contentType === 'webp') contentType = 'image/webp';
+      try {
+        if (fileData.base64) {
+          const buffer = Buffer.from(fileData.base64, 'base64');
+          const validation = validateDocument(buffer, fileData.mimeType);
+          inlinePart = {
+            inlineData: {
+              data: fileData.base64,
+              mimeType: validation.mimeType
+            }
+          };
+        } else if (fileData.url) {
+          console.log('[Gemini] Securely fetching document from Cloudinary URL for analysis...');
+          const { base64Data, contentType } = await safeFetchCloudinaryDocument(fileData.url, {
+            expectedCloudName: process.env.CLOUDINARY_CLOUD_NAME || 'offfbqj0',
+            maxSizeBytes: 10 * 1024 * 1024, // 10MB document size limit
+            timeoutMs: 10000 // 10-second download timeout
+          });
 
-        inlinePart = {
-          inlineData: {
-            data: base64Data,
-            mimeType: contentType
-          }
-        };
+          const buffer = Buffer.from(base64Data, 'base64');
+          const validation = validateDocument(buffer, fileData.mimeType || contentType);
+
+          inlinePart = {
+            inlineData: {
+              data: base64Data,
+              mimeType: validation.mimeType
+            }
+          };
+        } else {
+          return res.status(400).json({ error: 'fileData must contain either base64 or a valid url.' });
+        }
+      } catch (docErr) {
+        console.warn('[Gemini] Document validation rejected:', docErr.message);
+        return res.status(400).json({ error: docErr.message });
       }
     }
 
@@ -246,8 +306,9 @@ app.post('/api/gemini', verifyFirebaseToken, async (req, res) => {
     const text = response.text();
     res.json({ text });
   } catch (error) {
-    console.error('Gemini API Error:', error);
-    res.status(500).json({ error: error.message || 'Failed to communicate with Gemini API', details: error.message });
+    console.error('Gemini API Error:', error.message || error);
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ error: error.message || 'Failed to communicate with Gemini API', details: error.message });
   }
 });
 

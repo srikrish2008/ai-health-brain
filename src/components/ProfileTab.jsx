@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, User, Droplets, Scale, Moon, Heart, AlertTriangle, Pill, Syringe, Scissors, Users, ChevronDown, ChevronUp, Save } from 'lucide-react';
+import { X, Plus, Trash2, User, Droplets, Scale, Moon, Heart, AlertTriangle, Pill, Syringe, Scissors, Users, ChevronDown, ChevronUp, Save, Phone } from 'lucide-react';
+import { normalizeEmergencyContact } from '../utils/emergencyContact';
 
 // ─── Small Reusable Controls ────────────────────────────────────────────────
 
@@ -174,13 +175,29 @@ function VaccinationEditor({ items, onChange }) {
 // ─── Main Profile Edit Modal ─────────────────────────────────────────────────
 
 export default function ProfileTab({ profile, saving, onSave, onClose }) {
-  const [form, setForm] = useState({ ...profile });
+  const [form, setForm] = useState({
+    ...profile,
+    emergencyContact: normalizeEmergencyContact(profile?.emergencyContact)
+  });
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
+  const updateEmergencyContact = (field, val) => {
+    setForm(f => ({
+      ...f,
+      emergencyContact: {
+        ...normalizeEmergencyContact(f.emergencyContact),
+        [field]: val
+      }
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(form);
+    onSave({
+      ...form,
+      emergencyContact: normalizeEmergencyContact(form.emergencyContact)
+    });
   };
 
   return (
@@ -232,9 +249,41 @@ export default function ProfileTab({ profile, saving, onSave, onClose }) {
                 <label htmlFor="weight">Weight (kg)</label>
                 <input id="weight" type="number" placeholder="e.g. 70" value={form.weight || ''} onChange={e => set('weight', e.target.value)} />
               </div>
+            </div>
+          </FormSection>
+
+          {/* ── Emergency Contact ─────────────────────────────── */}
+          <FormSection title="Emergency Contact" icon={Phone} color="danger" defaultOpen={true}>
+            <div className="subform-grid">
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="emergency">Emergency Contact</label>
-                <input id="emergency" type="text" placeholder="Name & phone" value={form.emergencyContact || ''} onChange={e => set('emergencyContact', e.target.value)} />
+                <label htmlFor="emergencyName">Primary Contact Name</label>
+                <input
+                  id="emergencyName"
+                  type="text"
+                  placeholder="e.g. Jane Doe"
+                  value={form.emergencyContact?.name || ''}
+                  onChange={e => updateEmergencyContact('name', e.target.value)}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="emergencyRelation">Relationship</label>
+                <input
+                  id="emergencyRelation"
+                  type="text"
+                  placeholder="e.g. Spouse / Mother / Friend"
+                  value={form.emergencyContact?.relation || ''}
+                  onChange={e => updateEmergencyContact('relation', e.target.value)}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="emergencyPhone">Emergency Phone Number</label>
+                <input
+                  id="emergencyPhone"
+                  type="tel"
+                  placeholder="e.g. +1 (555) 019-2831"
+                  value={form.emergencyContact?.phone || ''}
+                  onChange={e => updateEmergencyContact('phone', e.target.value)}
+                />
               </div>
             </div>
           </FormSection>

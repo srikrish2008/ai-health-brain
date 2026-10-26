@@ -1,24 +1,43 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Shield, AlertTriangle, Download, FileText, Printer, Phone,
   User, Heart, Activity, Pill, Stethoscope, Clock, CheckCircle2,
   Edit3, Share2, AlertCircle, Calendar, Droplets, MapPin
 } from 'lucide-react';
+import { normalizeEmergencyContact } from '../utils/emergencyContact';
 
 export default function EmergencyTab({ profile, symptoms = [], visits = [], vaultFiles = [], vitals = [], saveProfile }) {
   const [activeView, setActiveView] = useState('card'); // 'card' or 'report'
   const [showEditEmergency, setShowEditEmergency] = useState(false);
 
+  // Compute normalized emergency contact for display
+  const currentEmergencyContact = useMemo(() => {
+    return normalizeEmergencyContact(profile?.emergencyContact);
+  }, [profile?.emergencyContact]);
+
   // Form states for editable emergency profile fields
-  const [contactName, setContactName] = useState(profile?.emergencyContact?.name || '');
-  const [contactRelation, setContactRelation] = useState(profile?.emergencyContact?.relation || 'Spouse / Partner');
-  const [contactPhone, setContactPhone] = useState(profile?.emergencyContact?.phone || '');
+  const [contactName, setContactName] = useState(currentEmergencyContact.name);
+  const [contactRelation, setContactRelation] = useState(currentEmergencyContact.relation || 'Spouse / Partner');
+  const [contactPhone, setContactPhone] = useState(currentEmergencyContact.phone);
   const [doctorName, setDoctorName] = useState(profile?.primaryDoctor?.name || '');
   const [doctorSpecialty, setDoctorSpecialty] = useState(profile?.primaryDoctor?.specialty || 'General Practitioner / Family Med');
   const [doctorPhone, setDoctorPhone] = useState(profile?.primaryDoctor?.phone || '');
   const [doctorHospital, setDoctorHospital] = useState(profile?.primaryDoctor?.hospital || '');
   const [organDonor, setOrganDonor] = useState(profile?.organDonor || 'Yes');
   const [saving, setSaving] = useState(false);
+
+  // Sync state whenever profile updates
+  useEffect(() => {
+    const ec = normalizeEmergencyContact(profile?.emergencyContact);
+    setContactName(ec.name);
+    setContactRelation(ec.relation || 'Spouse / Partner');
+    setContactPhone(ec.phone);
+    setDoctorName(profile?.primaryDoctor?.name || '');
+    setDoctorSpecialty(profile?.primaryDoctor?.specialty || 'General Practitioner / Family Med');
+    setDoctorPhone(profile?.primaryDoctor?.phone || '');
+    setDoctorHospital(profile?.primaryDoctor?.hospital || '');
+    setOrganDonor(profile?.organDonor || 'Yes');
+  }, [profile]);
 
   // Compute patient age
   const age = useMemo(() => {
@@ -130,7 +149,7 @@ export default function EmergencyTab({ profile, symptoms = [], visits = [], vaul
       </div>
       <div class="card">
         <div class="label">Emergency Contact</div>
-        <div class="val">${profile?.emergencyContact?.name || 'None Set'} (${profile?.emergencyContact?.relation || '—'})<br/>📞 ${profile?.emergencyContact?.phone || 'No phone provided'}</div>
+        <div class="val">${currentEmergencyContact?.name || 'None Set'} (${currentEmergencyContact?.relation || '—'})<br/>📞 ${currentEmergencyContact?.phone || 'No phone provided'}</div>
       </div>
       <div class="card">
         <div class="label">Primary Physician</div>
@@ -520,12 +539,12 @@ export default function EmergencyTab({ profile, symptoms = [], visits = [], vaul
                   <Phone size={14} style={{ color: '#f87171' }} /> Emergency Contact (In case of emergency)
                 </div>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>
-                  {profile?.emergencyContact?.name || 'No Contact Set'} 
-                  <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}> ({profile?.emergencyContact?.relation || '—'})</span>
+                  {currentEmergencyContact?.name || 'No Contact Set'} 
+                  <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}> ({currentEmergencyContact?.relation || '—'})</span>
                 </div>
-                {profile?.emergencyContact?.phone && (
-                  <a href={`tel:${profile.emergencyContact.phone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '6px', padding: '4px 10px', backgroundColor: '#dc2626', color: '#fff', borderRadius: '6px', fontWeight: 700, fontSize: '0.825rem', textDecoration: 'none' }}>
-                    📞 Call: {profile.emergencyContact.phone}
+                {currentEmergencyContact?.phone && (
+                  <a href={`tel:${currentEmergencyContact.phone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '6px', padding: '4px 10px', backgroundColor: '#dc2626', color: '#fff', borderRadius: '6px', fontWeight: 700, fontSize: '0.825rem', textDecoration: 'none' }}>
+                    📞 Call: {currentEmergencyContact.phone}
                   </a>
                 )}
               </div>
